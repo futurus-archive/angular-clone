@@ -17,8 +17,17 @@ Scope.prototype.$watch = function (watchFn, listenerFn) {
 };
 
 Scope.prototype.$digest = function () {
+    var self = this;
+    var newVal, oldVal;
+
     _.forEach(this.$$watchers, function (watcher) {
-        watcher.listenerFn();
+        newVal = watcher.watchFn(self);
+        oldVal = watcher.last;
+
+        if (newVal !== oldVal) {
+            watcher.last = newVal;
+            watcher.listenerFn(newVal, oldVal, self);
+        }
     })
 };
 
