@@ -28,7 +28,7 @@ Scope.prototype.$digest = function () {
             watcher.last = newVal;
             watcher.listenerFn(newVal, oldVal, self);
         }
-    })
+    });
 };
 
 module.exports = Scope;

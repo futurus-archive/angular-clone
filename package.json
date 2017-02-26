@@ -22,7 +22,8 @@
   },
   "scripts": {
     "lint": "jshint src test",
-    "test": "karma start"
+    "test": "karma start --single-run",
+    "dev-test": "karma start"
   },
   "license": "MIT",
   "dependencies": {
