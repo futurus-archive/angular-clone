@@ -70,5 +70,30 @@ describe('Scope', function () {
             scope.$digest();
             expect(scope.counter).toBe(2);
         });
+
+        it('calls listener when watch value is first undefined', function() {
+            scope.counter = 0;
+
+            scope.$watch(
+                function(scope) { return scope.someVal; },
+                function(newVal, oldVal, scope) { scope.counter++; }
+            );
+
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+        });
+
+        it('calls listener with new value as old value the first time', function() {
+           scope.someVal = 123;
+           var oldValueGiven;
+
+           scope.$watch(
+               function(scope) { return scope.someVal; },
+               function(newVal, oldVal, scope) { oldValueGiven = oldVal; }
+           );
+
+           scope.$digest();
+           expect(oldValueGiven).toBe(123);
+        });
     });
 });

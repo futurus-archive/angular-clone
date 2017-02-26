@@ -9,10 +9,13 @@ function Scope() {
     this.$$watchers = [];
 }
 
+function initWatchVal() {}
+
 Scope.prototype.$watch = function (watchFn, listenerFn) {
     this.$$watchers.push({
         watchFn: watchFn,
-        listenerFn: listenerFn
+        listenerFn: listenerFn,
+        last: initWatchVal
     });
 };
 
@@ -26,7 +29,9 @@ Scope.prototype.$digest = function () {
 
         if (newVal !== oldVal) {
             watcher.last = newVal;
-            watcher.listenerFn(newVal, oldVal, self);
+            watcher.listenerFn(newVal,
+                oldVal === initWatchVal ? newVal : oldVal,
+                self);
         }
     });
 };
