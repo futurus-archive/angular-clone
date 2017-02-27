@@ -11,5 +11,5 @@ module.exports = function (config) {
         },
         browsers: ['PhantomJS'],
         bundleDelay: 2000
-    })
-}
+    });
+};
