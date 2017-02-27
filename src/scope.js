@@ -42,18 +42,21 @@ Scope.prototype.$$digestOnce = function () {
     // forEachRight rather than forEach to support watch removal inside of $watch
     _.forEachRight(this.$$watchers, function (watcher) {
         try {
-            newVal = watcher.watchFn(self);
-            oldVal = watcher.last;
+            // making sure watcher exists, see watch removing several watches test case
+            if (watcher) {
+                newVal = watcher.watchFn(self);
+                oldVal = watcher.last;
 
-            if (!self.$$areEqual(newVal, oldVal, watcher.valueEq)) {
-                self.$$lastDirtyWatch = watcher;
-                watcher.last = (watcher.valueEq ? _.cloneDeep(newVal) : newVal);
-                watcher.listenerFn(newVal,
-                    oldVal === initWatchVal ? newVal : oldVal,
-                    self);
-                dirty = true;
-            } else if (self.$$lastDirtyWatch === watcher) {
-                return false;
+                if (!self.$$areEqual(newVal, oldVal, watcher.valueEq)) {
+                    self.$$lastDirtyWatch = watcher;
+                    watcher.last = (watcher.valueEq ? _.cloneDeep(newVal) : newVal);
+                    watcher.listenerFn(newVal,
+                        oldVal === initWatchVal ? newVal : oldVal,
+                        self);
+                    dirty = true;
+                } else if (self.$$lastDirtyWatch === watcher) {
+                    return false;
+                }
             }
         } catch (e) {
             console.error(e);

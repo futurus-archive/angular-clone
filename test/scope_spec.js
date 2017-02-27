@@ -369,5 +369,27 @@ describe('Scope', function () {
             scope.$digest();
             expect(scope.counter).toBe(1);
         });
+        
+        it('allows destroying several $watches during digest', function() {
+            scope.aVal = 'abc';
+            scope.counter = 0;
+            
+            var destroyWatch1 = scope.$watch(
+                function(scope) {
+                    destroyWatch1();
+                    destroyWatch2();
+                }
+            );
+            
+            var destroyWatch2 = scope.$watch(
+                function(scope) { return scope.aVal; },
+                function(newVal, oldVal, scope) {
+                    scope.counter++;
+                }
+            );
+            
+            scope.$digest();
+            expect(scope.counter).toBe(0);
+        });
     });
 });
