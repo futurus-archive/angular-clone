@@ -210,5 +210,137 @@ describe('Scope', function () {
             scope.$digest();
             expect(scope.counter).toBe(1);
         });
+        
+        it('compares based on value if enabled', function() {
+            scope.aVal = [1, 2, 3];
+            scope.counter = 0;
+            
+            scope.$watch(
+                function(scope) { return scope.aVal; },
+                function(newVal, oldVal, scope) { scope.counter++; },
+                true
+            );
+            
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            
+            scope.aVal.push(4);
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+        
+        it('correctly handles NaNs', function() {
+            scope.number = 0/0; // NaN
+            scope.counter = 0;
+            
+            scope.$watch(
+                function(scope) { return scope.number; },
+                function(newVal, oldVal, scope) {
+                    scope.counter++;
+                }
+            );
+            
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+        });
+        
+        it('catches exceptions in watch functions and continues', function() {
+            scope.aVal = 'abc';
+            scope.counter = 0;
+            
+            scope.$watch(
+                function(scope) { 
+                    throw 'Watch Error'; 
+                },
+                function(newVal, oldVal, scope) {}
+            );
+            scope.$watch(
+                function(scope) { return scope.aVal; },
+                function(newVal, oldVal, scope) {
+                    scope.counter++;
+                }
+            );
+
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+        });
+        
+        it('catches exceptions in listener functions and continues', function() {
+            scope.aVal = 'abc';
+            scope.counter = 0;
+            
+            scope.$watch(
+                function(scope) { return scope.aVal; },
+                function(newVal, oldVal, scope) {
+                    throw 'Listener Error';
+                }
+            );
+            scope.$watch(
+                function(scope) { return scope.aVal; },
+                function(newVal, oldVal, scope) {
+                    scope.counter++;
+                }
+            );
+
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+        });
+        
+        it('allows destroying a $watch with a removal function', function() {
+            scope.aVal = 'abc';
+            scope.counter = 0;
+            
+            var destroyWatch = scope.$watch(
+                function(scope) { return scope.aVal; },
+                function(newVal, oldVal, scope) {
+                    scope.counter++;
+                }
+            );
+            
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+            
+            scope.aVal = 'def';
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+            
+            scope.aVal = 'ghi';
+            destroyWatch();
+            scope.$digest();
+            expect(scope.counter).toBe(2);
+        });
+        
+        it('allows destroying a $watch during digest', function() {
+            scope.aVal = 'abc';
+            
+            var watchCalls = [];
+            
+            scope.$watch(
+                function(scope) { 
+                    watchCalls.push('first');
+                    return scope.aVal; 
+                }
+            );
+            
+            var destroyWatch = scope.$watch(
+                function(scope) { 
+                    watchCalls.push('second');
+                    destroyWatch();
+                }
+            );
+            
+            scope.$watch(
+                function(scope) { 
+                    watchCalls.push('third');
+                    return scope.aVal; 
+                }
+            );
+            
+            scope.$digest();
+            expect(watchCalls).toEqual(['first', 'second', 'third', 'first', 'third']);
+        });
     });
 });

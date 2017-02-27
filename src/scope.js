@@ -13,33 +13,49 @@ function Scope() {
 function initWatchVal() {
 }
 
-Scope.prototype.$watch = function (watchFn, listenerFn) {
-    this.$$watchers.push({
+Scope.prototype.$watch = function (watchFn, listenerFn, valueEq) {
+    var self = this;
+    var watcher = {
         watchFn: watchFn,
-        listenerFn: listenerFn || function () {
-        },
+        listenerFn: listenerFn || function () {},
+        valueEq: !!valueEq,
         last: initWatchVal
-    });
+    };
+    
+    // unshift rather than push to support watch removal inside of $watch
+    this.$$watchers.unshift(watcher); 
     this.$$lastDirtyWatch = null;
+    
+    return function() {
+        var index = self.$$watchers.indexOf(watcher);
+        if (index >= 0) {
+            self.$$watchers.splice(index, 1);
+        }
+    };
 };
 
 Scope.prototype.$$digestOnce = function () {
     var self = this;
     var newVal, oldVal, dirty;
 
-    _.forEach(this.$$watchers, function (watcher) {
-        newVal = watcher.watchFn(self);
-        oldVal = watcher.last;
+    // forEachRight rather than forEach to support watch removal inside of $watch
+    _.forEachRight(this.$$watchers, function (watcher) {
+        try {
+            newVal = watcher.watchFn(self);
+            oldVal = watcher.last;
 
-        if (newVal !== oldVal) {
-            self.$$lastDirtyWatch = watcher;
-            watcher.last = newVal;
-            watcher.listenerFn(newVal,
-                oldVal === initWatchVal ? newVal : oldVal,
-                self);
-            dirty = true;
-        } else if (self.$$lastDirtyWatch === watcher) {
-            return false;
+            if (!self.$$areEqual(newVal, oldVal, watcher.valueEq)) {
+                self.$$lastDirtyWatch = watcher;
+                watcher.last = (watcher.valueEq ? _.cloneDeep(newVal) : newVal);
+                watcher.listenerFn(newVal,
+                    oldVal === initWatchVal ? newVal : oldVal,
+                    self);
+                dirty = true;
+            } else if (self.$$lastDirtyWatch === watcher) {
+                return false;
+            }
+        } catch (e) {
+            console.error(e);
         }
     });
     return dirty;
@@ -57,6 +73,17 @@ Scope.prototype.$digest = function () {
             throw 'max ttl digest iterations reached';
         }
     } while (dirty);
+};
+
+Scope.prototype.$$areEqual = function(newVal, oldVal, valueEq) {
+    if (valueEq) {
+        return _.isEqual(newVal, oldVal);
+    } else {
+        return newVal === oldVal ||
+            (typeof newVal === 'number' &&
+             typeof oldVal === 'number' &&
+             isNaN(newVal) && isNaN(oldVal));
+    }
 };
 
 module.exports = Scope;
