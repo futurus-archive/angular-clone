@@ -9,19 +9,21 @@ function Scope() {
     this.$$watchers = [];
 }
 
-function initWatchVal() {}
+function initWatchVal() {
+}
 
 Scope.prototype.$watch = function (watchFn, listenerFn) {
     this.$$watchers.push({
         watchFn: watchFn,
-        listenerFn: listenerFn,
+        listenerFn: listenerFn || function () {
+        },
         last: initWatchVal
     });
 };
 
-Scope.prototype.$digest = function () {
+Scope.prototype.$$digestOnce = function () {
     var self = this;
-    var newVal, oldVal;
+    var newVal, oldVal, dirty;
 
     _.forEach(this.$$watchers, function (watcher) {
         newVal = watcher.watchFn(self);
@@ -32,8 +34,23 @@ Scope.prototype.$digest = function () {
             watcher.listenerFn(newVal,
                 oldVal === initWatchVal ? newVal : oldVal,
                 self);
+            dirty = true;
         }
     });
+    return dirty;
+};
+
+Scope.prototype.$digest = function () {
+    var ttl = 10;
+    var dirty;
+
+    do {
+        dirty = this.$$digestOnce();
+
+        if (dirty && !(ttl--)) {
+            throw 'max ttl digest iterations reached';
+        }
+    } while (dirty);
 };
 
 module.exports = Scope;
