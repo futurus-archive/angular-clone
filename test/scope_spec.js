@@ -342,5 +342,32 @@ describe('Scope', function () {
             scope.$digest();
             expect(watchCalls).toEqual(['first', 'second', 'third', 'first', 'third']);
         });
+        
+        it('allows a $watch to destroy another during digest', function() {
+            scope.aVal = 'abc';
+            scope.counter = 0;
+            
+            scope.$watch(
+                function(scope) { return scope.aVal; },
+                function(newVal, oldVal, scope) { 
+                    destroyWatch();
+                }
+            );
+            
+            var destroyWatch = scope.$watch(
+                function(scope) { },
+                function(newVal, oldVal, scope) { }
+            );
+            
+            scope.$watch(
+                function(scope) { return scope.aVal; },
+                function(newVal, oldVal, scope) {
+                    scope.counter++;
+                }
+            );
+            
+            scope.$digest();
+            expect(scope.counter).toBe(1);
+        });
     });
 });
