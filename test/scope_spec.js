@@ -393,3 +393,31 @@ describe('Scope', function () {
         });
     });
 });
+
+describe('$eval', function() {
+    var scope;
+    
+    beforeEach(function() {
+        scope = new Scope();
+    });
+
+    it('executes $evaled function and returns result', function() {
+        scope.aVal = 42;
+        
+        var result = scope.$eval(function(scope) {
+            return scope.aVal; 
+        });
+
+        expect(result).toBe(42);
+    });
+    
+    it('passes the second $eval argument straight through', function() {
+        scope.aVal = 42;
+        
+        var result = scope.$eval(function(scope, arg) {
+            return scope.aVal + arg; 
+        }, 2);
+        
+        expect(result).toBe(44);
+    });
+});

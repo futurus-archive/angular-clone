@@ -90,4 +90,8 @@ Scope.prototype.$$areEqual = function(newVal, oldVal, valueEq) {
     }
 };
 
+Scope.prototype.$eval = function (expr, locals) {
+    return expr(this, locals);
+};
+
 module.exports = Scope;
