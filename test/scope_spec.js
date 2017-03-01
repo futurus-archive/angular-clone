@@ -419,6 +419,31 @@ describe('Scope', function() {
             scope.$digest();
             expect(scope.counter).toBe(0);
         });
+        
+        it('has a $$phase field whose value is the current digest phase', function() {
+            scope.aVal = [1, 2, 3];
+            scope.phaseInWatchFunction = undefined;
+            scope.phaseInListenerFunction = undefined;
+            scope.phaseInApplyFunction = undefined;
+            
+            scope.$watch(
+                function(scope) { 
+                    scope.phaseInWatchFunction = scope.$$phase;
+                    return scope.aVal; 
+                },
+                function(newVal, oldVal, scope) { 
+                    scope.phaseInListenerFunction = scope.$$phase;
+                }
+            );
+            
+            scope.$apply(function(scope) {
+                scope.phaseInApplyFunction = scope.$$phase;
+            });
+            
+            expect(scope.phaseInWatchFunction).toBe('$digest');
+            expect(scope.phaseInListenerFunction).toBe('$digest');
+            expect(scope.phaseInApplyFunction).toBe('$apply');
+        });
     });
 });
 
@@ -559,5 +584,23 @@ describe('$evalAsync', function() {
         );
         
         expect(function() { scope.$digest(); }).toThrow();
+    });
+    
+    it('schedules a digest in $evalAsync', function(done) {
+        scope.aVal = 'abc';
+        scope.counter = 0;
+        
+        scope.$watch(
+            function(scope) { return scope.aVal; },
+            function(newVal, oldVal, scope) { scope.counter++; }
+        );
+        
+        scope.$evalAsync(function(scope) { });
+        
+        expect(scope.counter).toBe(0);
+        setTimeout(function() {
+            expect(scope.counter).toBe(1);
+            done();
+        }, 50);
     });
 });
