@@ -8,24 +8,24 @@ var _ = require('lodash');
 function Scope() {
     this.$$watchers = [];
     this.$$lastDirtyWatch = null;
+    this.$$asyncQueue = [];
 }
 
-function initWatchVal() {
-}
+function initWatchVal() {}
 
-Scope.prototype.$watch = function (watchFn, listenerFn, valueEq) {
+Scope.prototype.$watch = function(watchFn, listenerFn, valueEq) {
     var self = this;
     var watcher = {
         watchFn: watchFn,
-        listenerFn: listenerFn || function () {},
+        listenerFn: listenerFn || function() {},
         valueEq: !!valueEq,
         last: initWatchVal
     };
-    
+
     // unshift rather than push to support watch removal inside of $watch
-    this.$$watchers.unshift(watcher); 
+    this.$$watchers.unshift(watcher);
     this.$$lastDirtyWatch = null;
-    
+
     return function() {
         var index = self.$$watchers.indexOf(watcher);
         if (index >= 0) {
@@ -35,12 +35,12 @@ Scope.prototype.$watch = function (watchFn, listenerFn, valueEq) {
     };
 };
 
-Scope.prototype.$$digestOnce = function () {
+Scope.prototype.$$digestOnce = function() {
     var self = this;
     var newVal, oldVal, dirty;
 
     // forEachRight rather than forEach to support watch removal inside of $watch
-    _.forEachRight(this.$$watchers, function (watcher) {
+    _.forEachRight(this.$$watchers, function(watcher) {
         try {
             // making sure watcher exists, see watch removing several watches test case
             if (watcher) {
@@ -65,18 +65,21 @@ Scope.prototype.$$digestOnce = function () {
     return dirty;
 };
 
-Scope.prototype.$digest = function () {
+Scope.prototype.$digest = function() {
     var ttl = 10;
     var dirty;
     this.$$lastDirtyWatch = null;
 
     do {
+        while(this.$$asyncQueue.length) {
+            var asyncTask = this.$$asyncQueue.shift();
+            asyncTask.scope.$eval(asyncTask.expression);
+        }
         dirty = this.$$digestOnce();
-
-        if (dirty && !(ttl--)) {
+        if ((dirty || this.$$asyncQueue.length) && !(ttl--)) {
             throw 'max ttl digest iterations reached';
         }
-    } while (dirty);
+    } while (dirty || this.$$asyncQueue.length);
 };
 
 Scope.prototype.$$areEqual = function(newVal, oldVal, valueEq) {
@@ -85,9 +88,25 @@ Scope.prototype.$$areEqual = function(newVal, oldVal, valueEq) {
     } else {
         return newVal === oldVal ||
             (typeof newVal === 'number' &&
-             typeof oldVal === 'number' &&
-             isNaN(newVal) && isNaN(oldVal));
+                typeof oldVal === 'number' &&
+                isNaN(newVal) && isNaN(oldVal));
     }
+};
+
+Scope.prototype.$eval = function(expr, locals) {
+    return expr(this, locals);
+};
+
+Scope.prototype.$apply = function(fn) {
+    try {
+        this.$eval(fn);
+    } finally {
+        this.$digest();
+    }
+};
+
+Scope.prototype.$evalAsync = function(expr) {
+    this.$$asyncQueue.push({scope: this, expression: expr});
 };
 
 module.exports = Scope;
