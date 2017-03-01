@@ -9,6 +9,8 @@ function Scope() {
     this.$$watchers = [];
     this.$$lastDirtyWatch = null;
     this.$$asyncQueue = [];
+    this.$$applyAsyncQueue = [];
+    this.$$applyAsyncId = null;
     this.$$phase = null;
 }
 
@@ -112,16 +114,6 @@ Scope.prototype.$eval = function(expr, locals) {
     return expr(this, locals);
 };
 
-Scope.prototype.$apply = function(fn) {
-    try {
-        this.$beginPhase('$apply');
-        this.$eval(fn);
-    } finally {
-        this.$clearPhase();
-        this.$digest();
-    }
-};
-
 Scope.prototype.$evalAsync = function(expr) {
     var self = this;
     if (!self.$$phase && !self.$$asyncQueue.length) {
@@ -132,6 +124,35 @@ Scope.prototype.$evalAsync = function(expr) {
         }, 0);
     }
     this.$$asyncQueue.push({scope: this, expression: expr});
+};
+
+Scope.prototype.$apply = function(expr) {
+    try {
+        this.$beginPhase('$apply');
+        this.$eval(expr);
+    } finally {
+        this.$clearPhase();
+        this.$digest();
+    }
+};
+
+Scope.prototype.$applyAsync = function (expr) {
+    var self = this;
+    self.$$applyAsyncQueue.push(function() {
+        self.$eval(expr);
+    });
+    
+    if (self.$$applyAsyncId === null) {
+        self.$$applyAsyncId = setTimeout(function() {
+            self.$apply(function() {
+                while (self.$$applyAsyncQueue.length) {
+                    // this is not the best notation!!!
+                    self.$$applyAsyncQueue.shift()();
+                }
+                self.$$applyAsyncId = null;
+            });
+        });
+    }
 };
 
 module.exports = Scope;
