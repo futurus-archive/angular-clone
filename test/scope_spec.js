@@ -685,6 +685,30 @@ describe('$applyAsync', function() {
             expect(scope.counter).toBe(2);
             done();
         }, 50);
+    });
+    
+    it('cancels and flushes $applyAsync if digested first', function(done) {
+        scope.counter = 0;
         
+        scope.$watch(
+            function(scope) {
+                scope.counter++;
+                return scope.aVal;
+            },
+            function(newVal, oldVal, scope) { }
+        );
+        
+        scope.$applyAsync(function(scope) { scope.aVal = 'abc';});
+        
+        scope.$applyAsync(function(scope) { scope.aVal = 'def';});
+        
+        scope.$digest();
+        expect(scope.counter).toBe(2);
+        expect(scope.aVal).toEqual('def');
+        
+        setTimeout(function() {
+            expect(scope.counter).toBe(2);
+            done();
+        }, 50);
     });
 });
