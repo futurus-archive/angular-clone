@@ -712,3 +712,46 @@ describe('$applyAsync', function() {
         }, 50);
     });
 });
+
+describe('$postDigest', function() {
+    var scope;
+    
+    beforeEach(function () {
+        scope = new Scope();
+    });
+    
+    it('runs after each digest', function() {
+        scope.counter = 0;
+        scope.$$postDigest(function () {
+            scope.counter++;
+        });
+        
+        expect(scope.counter).toBe(0);
+        scope.$digest();
+        
+        expect(scope.counter).toBe(1);
+        scope.$digest();
+        
+        expect(scope.counter).toBe(1);
+    });
+    
+    it('does not include $$postDigest in the digest', function() {
+        scope.aVal = 'original value';
+        
+        scope.$$postDigest(function () {
+            scope.aVal = 'changed value';
+        });
+        
+        scope.$watch(function (scope) {
+            return scope.aVal;
+        }, function (newVal, oldVal, scope) {
+            scope.watchedVal = newVal;
+        });
+        
+        scope.$digest();
+        expect(scope.watchedVal).toBe('original value');
+        
+        scope.$digest();
+        expect(scope.watchedVal).toBe('changed value');
+    });
+});
