@@ -2,3 +2,5 @@
 
 # angular-clone
 Working through "Build your own AngularJS" https://teropa.info/build-your-own-angular/
+
+Testing codeship
