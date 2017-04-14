@@ -182,6 +182,6 @@ Scope.prototype.$applyAsync = function (expr) {
 
 Scope.prototype.$$postDigest = function (fn) {
     this.$$postDigestQueue.push(fn);
-}
+};
 
 module.exports = Scope;
